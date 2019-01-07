@@ -24,7 +24,7 @@
     SOFTWARE.
 ]]
 
-
+local SPEED = 2
 
 local DIRECTIONS = 2
 local CLOSE = 0
@@ -41,8 +41,8 @@ local max = math.max
 
 local W, H = 600, 600 
 
-local tilesW = 101
-local tilesH = 101
+local tilesW = 75
+local tilesH = 75
 
 local cellW = W/tilesW
 local cellH = H/tilesH
@@ -117,6 +117,7 @@ local function generateMaze(w, h)
 
 	-- the list of cells contained within the map
 	local cells = {}
+	local parent = {}
 
 	-- coords of the cells
 	local cx, cy = {}, {}
@@ -164,21 +165,22 @@ local function generateMaze(w, h)
 			-- check if 2D coord is within bounds
 			if((0 < tx and tx <= w) and (0 < ty and ty <= h)) then 
 				-- check if cell is not yet visited
-				if(not visited[index]) then 
+				if(not (visited[index] or parent[index])) then 
 					-- cell is now visited
 					visited[index] = true 
 
 					-- punch through the wall
 					-- set the blocked path between two cells to open
-					local bx, by = x + dx/2, y + dy/2 
-					local bi = (by - 1)*w + bx 
+					-- local bx, by = x + dx/2, y + dy/2 
+					-- local bi = (by - 1)*w + bx 
 					
-					map[bi] = OPEN
+					-- map[bi] = OPEN
 
 					-- push the next cell to visit
 					cz = cz + 1
 					cellStack[cz] = index
 
+					parent[index] = (y - 1)*w + x
 					return true 
 				end 
 			end
@@ -216,6 +218,17 @@ local function generateMaze(w, h)
 		if (currentCell and cz > 0) then 
 			-- get coords of the current cell
 			local x, y = cx[currentCell], cy[currentCell]
+
+			local parentNode = parent[currentCell]
+
+			if(parentNode) then 
+				-- punch through the wall
+				-- set the blocked path between two cells to open
+				local px, py = cx[parentNode], cy[parentNode]
+				local bx, by = (x + px)/2, (y + py)/2 
+				local bi = (by - 1)*w + bx 
+				map[bi] = OPEN
+			end 
 
 			cellStack[cz] = nil
 			-- pop stack
@@ -390,30 +403,31 @@ local updateOnce = false
 
 local State = "none"
 function love.update()
-
-	if(GMUfinish) then 	
-		if(not updateOnce) then 
-			updateOnce = true 
-			updateSolution()
-		end 
-		if(SPVfinish) then 
-			if(not SPTfinish) then 
-				State = "Backtracking"
+	for i = 1, SPEED do 
+		if(GMUfinish) then 	
+			if(not updateOnce) then 
+				updateOnce = true 
+				updateSolution()
+			end 
+			if(SPVfinish) then 
+				if(not SPTfinish) then 
+					State = "Backtracking"
+				else 
+					State = "Maze Solved!"
+				end
 			else 
-				State = "Maze Solved!"
-			end
-		else 
-			State = "Finding Goal Point"
-		end 
+				State = "Finding Goal Point"
+			end 
 
-		if(not (SPVfinish and SPTfinish)) then 
-			solvePathVisit()
+			if(not (SPVfinish and SPTfinish)) then 
+				solvePathVisit()
+			end 
+		else 
+			generateMazeUp()
+			updateOnce = false
+			State = "Building Maze"
 		end 
-	else 
-		generateMazeUp()
-		updateOnce = false
-		State = "Building Maze"
-	end 
+	end
 end 
 
 

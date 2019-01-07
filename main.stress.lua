@@ -108,6 +108,7 @@ local function generateMaze(w, h)
 
 	-- the list of cells contained within the map
 	local cells = {}
+	local parent = {}
 
 	-- coords of the cells
 	local cx, cy = {}, {}
@@ -154,21 +155,22 @@ local function generateMaze(w, h)
 
 			-- check if 2D coord is within bounds
 			if((0 < tx and tx <= w) and (0 < ty and ty <= h)) then 
-				-- check if cell is not yet visited
-				if(not visited[index]) then 
+				if(not (visited[index] or parent[index])) then 
 					-- cell is now visited
 					visited[index] = true 
 
 					-- punch through the wall
 					-- set the blocked path between two cells to open
-					local bx, by = x + dx/2, y + dy/2 
-					local bi = (by - 1)*w + bx 
+					-- local bx, by = x + dx/2, y + dy/2 
+					-- local bi = (by - 1)*w + bx 
 					
-					map[bi] = OPEN
+					-- map[bi] = OPEN
 
 					-- push the next cell to visit
 					cz = cz + 1
 					cellStack[cz] = index
+						
+					parent[index] = (y - 1)*w + x
 				end 
 			end
 		--end 
@@ -202,7 +204,16 @@ local function generateMaze(w, h)
 	while(currentCell and cz > 0) do 
 		-- get coords of the current cell
 		local x, y = cx[currentCell], cy[currentCell]
+		local parentNode = parent[currentCell]
 
+		if(parentNode) then 
+			-- punch through the wall
+			-- set the blocked path between two cells to open
+			local px, py = cx[parentNode], cy[parentNode]
+			local bx, by = (x + px)/2, (y + py)/2 
+			local bi = (by - 1)*w + bx 
+			map[bi] = OPEN
+		end 
 		-- pop stack
 		cellStack[cz] = nil
 		cz = cz - 1
